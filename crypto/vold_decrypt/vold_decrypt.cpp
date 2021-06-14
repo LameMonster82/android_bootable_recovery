@@ -243,13 +243,13 @@ bool Service_Exists(const string& initrc_svc) {
 	return (Get_Service_State(initrc_svc) != "error");
 }
 
-bool Is_Service_Running(const string& initrc_svc) {
-	return (Get_Service_State(initrc_svc) == "running");
-}
-
-bool Is_Service_Stopped(const string& initrc_svc) {
-	return (Get_Service_State(initrc_svc) == "stopped");
-}
+//bool Is_Service_Running(const string& initrc_svc) {
+//	return (Get_Service_State(initrc_svc) == "running");
+//}
+//
+//bool Is_Service_Stopped(const string& initrc_svc) {
+//	return (Get_Service_State(initrc_svc) == "stopped");
+//}
 
 bool Start_Service(const string& initrc_svc, int utimeout = SLEEP_MAX_USEC) {
 	string res = "error";
@@ -293,29 +293,29 @@ bool is_Firmware_Mounted(void) {
 	return is_mounted;
 }
 
-bool will_VendorBin_Be_Symlinked(void) {
-	return (!is_Vendor_Mounted() && TWFunc::Path_Exists("/system/vendor"));
-}
+//bool will_VendorBin_Be_Symlinked(void) {
+//	return (!is_Vendor_Mounted() && TWFunc::Path_Exists("/system/vendor"));
+//}
 
-bool Symlink_Vendor_Folder(void) {
-	bool is_vendor_symlinked = false;
-
-	if (is_Vendor_Mounted()) {
-		LOGINFO("vendor partition mounted, skipping /vendor substitution\n");
-	}
-	else if (TWFunc::Path_Exists("/system/vendor")) {
-		LOGINFO("Symlinking vendor folder...\n");
-		if (!TWFunc::Path_Exists("/vendor") || vrename("/vendor", "/vendor-orig") == 0) {
-			TWFunc::Recursive_Mkdir("/vendor/firmware/keymaster");
-			vsymlink("/system/vendor/lib64", "/vendor/lib64", true);
-			vsymlink("/system/vendor/lib", "/vendor/lib", true);
-			vsymlink("/system/vendor/bin", "/vendor/bin", true);
-			is_vendor_symlinked = true;
-			property_set("vold_decrypt.symlinked_vendor", "1");
-		}
-	}
-	return is_vendor_symlinked;
-}
+//bool Symlink_Vendor_Folder(void) {
+//	bool is_vendor_symlinked = false;
+//
+//	if (is_Vendor_Mounted()) {
+//		LOGINFO("vendor partition mounted, skipping /vendor substitution\n");
+//	}
+//	else if (TWFunc::Path_Exists("/system/vendor")) {
+//		LOGINFO("Symlinking vendor folder...\n");
+//		if (!TWFunc::Path_Exists("/vendor") || vrename("/vendor", "/vendor-orig") == 0) {
+//			TWFunc::Recursive_Mkdir("/vendor/firmware/keymaster");
+//			vsymlink("/system/vendor/lib64", "/vendor/lib64", true);
+//			vsymlink("/system/vendor/lib", "/vendor/lib", true);
+//			vsymlink("/system/vendor/bin", "/vendor/bin", true);
+//			is_vendor_symlinked = true;
+//			property_set("vold_decrypt.symlinked_vendor", "1");
+//		}
+//	}
+//	return is_vendor_symlinked;
+//}
 
 void Restore_Vendor_Folder(void) {
 	property_set("vold_decrypt.symlinked_vendor", "0");
@@ -775,9 +775,9 @@ void Set_Needed_Properties(void) {
 		if (!ro_storage_structure.empty())
 			property_set("ro.storage_structure", ro_storage_structure.c_str());
 	}
-	property_set("hwservicemanager.ready", "false");
-	property_set("sys.listeners.registered", "false");
-	property_set("vendor.sys.listeners.registered", "false");
+	//property_set("hwservicemanager.ready", "false");
+	//property_set("sys.listeners.registered", "false");
+	//property_set("vendor.sys.listeners.registered", "false");
 }
 
 void Update_Patch_Level(void) {
@@ -996,7 +996,7 @@ int Exec_vdc_cryptfs(const string& command, const string& argument, vdc_ReturnVa
 
 	// getpwtype and checkpw commands are removed from Pie vdc, using modified vdc_pie
 	const char *cmd[] = { "/sbin/vdc_pie", "cryptfs" };
-	if (sdkver < 28)
+	if (sdkver < 30)
 		cmd[0] = "/system/bin/vdc";
 	const char *env[] = { "LD_LIBRARY_PATH=/system/lib64:/system/lib", NULL };
 
@@ -1161,7 +1161,7 @@ int Run_vdc(const string& Password) {
 	}
 
 	// Input password from GUI, or default password
-	res = Exec_vdc_cryptfs("checkpw", Password, &vdcResult);
+	res = Exec_vdc_cryptfs("mountdefaultencrypted", "", &vdcResult);
 	if (res == VD_ERR_VOLD_OPERATION_TIMEDOUT)
 		return VD_ERR_VOLD_OPERATION_TIMEDOUT;
 	else if (res)
@@ -1207,7 +1207,7 @@ int Run_vdc(const string& Password) {
 	} else {
 		res = VD_ERR_DECRYPTION_FAILED;
 	}
-
+	LOGINFO("res is: %i\n", res);
 	return res;
 }
 
@@ -1278,7 +1278,7 @@ int Vold_Decrypt_Core(const string& Password) {
 
 	LOGINFO("Setting up folders and permissions...\n");
 	is_fstab_symlinked = Symlink_Recovery_Fstab();
-	is_vendor_symlinked = Symlink_Vendor_Folder();
+	is_vendor_symlinked = true;
 	is_firmware_symlinked = Symlink_Firmware_Folder();
 	Symlink_Firmware_Files(is_vendor_symlinked, is_firmware_symlinked);
 
@@ -1355,7 +1355,7 @@ int Vold_Decrypt_Core(const string& Password) {
 #endif
 	// Stop services needed for vold decrypt so /system can be unmounted
 	LOGINFO("Stopping services...\n");
-	Stop_Service("sys_vold");
+	Stop_Service("dummy");
 #ifdef TW_CRYPTO_SYSTEM_VOLD_SERVICES
 	for (size_t i = 0; i < Services.size(); ++i) {
 		if (!Is_Service_Running(Services[i].VOLD_Service_Name) && Services[i].resume)
